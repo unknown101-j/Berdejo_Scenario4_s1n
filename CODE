@@ -1,0 +1,156 @@
+using System;
+
+namespace Berdejo_CleanWater_ScenarioD
+{
+    // ==================== BASE CLASS ====================
+    // This abstract class represents a general water filter.
+    // It contains shared properties and methods that all filter types use.
+    public abstract class WaterFilter
+    {
+        private string filterID;
+        protected int usageCount; // Protected so child classes can update how many times the filter was used
+
+        // Property with validation to protect data from invalid input
+        public string FilterID
+        {
+            get { return filterID; }
+            set
+            {
+                // Prevent empty or blank IDs
+                if (string.IsNullOrWhiteSpace(value))
+                    throw new ArgumentException("FilterID cannot be empty.");
+
+                filterID = value;
+            }
+        }
+
+        // Read-only property so outside code can view usage but cannot change it
+        public int UsageCount => usageCount;
+
+        // Constructor runs when a new filter is created
+        protected WaterFilter(string id)
+        {
+            FilterID = id;
+            usageCount = 0; // New filter has not processed any water yet
+        }
+
+        // Abstract method: each filter type MUST define how it processes water
+        public abstract void ProcessWater(double volume);
+
+        // Calculates filter efficiency
+        // If UsageCount is 0, this will throw DivideByZeroException (required by activity)
+        public double CalculateFiltrationEfficiency()
+        {
+            return 100 / usageCount;
+        }
+    }
+
+    // ==================== CARBON FILTER ====================
+    // This filter removes physical debris from water
+    public class CarbonFilter : WaterFilter
+    {
+        private double totalDebrisRemoved;
+
+        public CarbonFilter(string id) : base(id)
+        {
+            totalDebrisRemoved = 0;
+        }
+
+        // Specific processing logic for carbon filters
+        public override void ProcessWater(double volume)
+        {
+            // Validate input before processing
+            if (volume <= 0)
+                throw new ArgumentException("Water volume must be greater than zero.");
+
+            usageCount++; // Record that water passed through the filter
+
+            // Assume carbon filter removes 75% of debris from water
+            totalDebrisRemoved += volume * 0.75;
+
+            Console.WriteLine($"Carbon Filter {FilterID} processed {volume:F1}L -> Removed {volume * 0.75:F1} debris.");
+        }
+    }
+
+    // ==================== CHEMICAL FILTER ====================
+    // This filter neutralizes chemical contaminants
+    public class ChemicalFilter : WaterFilter
+    {
+        private double totalChemicalsNeutralized;
+
+        public ChemicalFilter(string id) : base(id)
+        {
+            totalChemicalsNeutralized = 0;
+        }
+
+        // Specific processing logic for chemical filters
+        public override void ProcessWater(double volume)
+        {
+            // Validate input before processing
+            if (volume <= 0)
+                throw new ArgumentException("Water volume must be greater than zero.");
+
+            usageCount++; // Record usage
+
+            // Assume chemical filter neutralizes 25% of harmful chemicals
+            totalChemicalsNeutralized += volume * 0.25;
+
+            Console.WriteLine($"Chemical Filter {FilterID} processed {volume:F1}L -> Neutralized {volume * 0.25:F2} chemicals.");
+        }
+    }
+
+    // ==================== MAIN PROGRAM ====================
+    class Program
+    {
+        static void Main()
+        {
+            Console.WriteLine("Clean-Water Treatment Plant Simulator\n");
+
+            try
+            {
+                // Demonstrates polymorphism:
+                // Both objects are stored as WaterFilter type,
+                // but each runs its own version of ProcessWater()
+                WaterFilter carbon = new CarbonFilter("CF-101");
+                WaterFilter chemical = new ChemicalFilter("CH-202");
+
+                // Simulate water processing
+                carbon.ProcessWater(150.0);
+                carbon.ProcessWater(90.5);
+                chemical.ProcessWater(150.0);
+                chemical.ProcessWater(90.5);
+
+                // Display efficiency results
+                Console.WriteLine($"\nCarbon Efficiency: {carbon.CalculateFiltrationEfficiency()}%");
+                Console.WriteLine($"Chemical Efficiency: {chemical.CalculateFiltrationEfficiency()}%");
+
+                // Test case: new filter with zero usage
+                // This intentionally triggers DivideByZeroException
+                Console.WriteLine("\nTesting brand new filter (no water processed)...");
+                WaterFilter newFilter = new CarbonFilter("CF-NEW");
+                Console.WriteLine($"New Filter Efficiency: {newFilter.CalculateFiltrationEfficiency()}%");
+            }
+            catch (DivideByZeroException ex)
+            {
+                Console.WriteLine($"\nDivideByZeroException caught: {ex.Message}");
+                Console.WriteLine("   -> Cannot calculate efficiency because no water has passed through yet.");
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine($"\nArgumentException: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                // Safety net for unexpected errors
+                Console.WriteLine($"\nUnexpected error: {ex.Message}");
+            }
+            finally
+            {
+                // Always executes whether error occurs or not
+                Console.WriteLine("\nSystem Shutdown");
+            }
+
+            Console.ReadKey();
+        }
+    }
+}
